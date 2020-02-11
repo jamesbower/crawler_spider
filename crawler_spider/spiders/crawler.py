@@ -4,20 +4,26 @@ from scrapy.linkextractors import LinkExtractor
 from twisted.internet.error import DNSLookupError
 from scrapy.spidermiddlewares.httperror import HttpError
 from twisted.internet.error import TimeoutError, TCPTimedOutError
+from scrapy.item import Item, Field
 
+class MyItem(Item):
+    url= Field()
 
 class CrawlerSpider(CrawlSpider):
     name = 'crawler'
     allowed_domains = ['xyz.com']
-    start_urls = ['http://xyz.com/']
+    start_urls = ['http://www.xyz.com/']
 
     handle_httpstatus_list = [403, 404]
 
-    rules = (Rule(LinkExtractor(), callback='parse_page', follow=True),)
+    rules = (Rule(LinkExtractor(allow=()), callback='parse_page', follow=True),)
 
     def parse_page(self, response):
-        yield {'response_status': response.status,
-               'response_url': response.url}
+        item = MyItem()
+        item['url'] = []
+        for link in LinkExtractor(allow=(), deny = self.allowed_domains).extract_links(response):
+                item['url'].append(link.url)
+        return item
 
     def parse_failed_domain(self, failure):
         # log all failures
